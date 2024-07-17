@@ -4,7 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Forgot Password</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsonwebtoken/8.5.1/jsonwebtoken.min.js"></script>
+
+    <title>Edit Post</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -23,28 +25,26 @@
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
             padding: 20px;
             width: 80%;
-            max-width: 400px;
+            max-width: 600px;
             text-align: center;
         }
 
         h1 {
             color: #333;
-            margin-bottom: 20px;
         }
 
         form {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            margin-top: 20px;
         }
 
-        input[type="email"] {
+        textarea {
             width: 100%;
+            height: 200px;
             padding: 10px;
             font-size: 16px;
-            margin-bottom: 10px;
             border: 1px solid #ccc;
             border-radius: 4px;
+            resize: vertical;
         }
 
         button[type="submit"] {
@@ -62,13 +62,8 @@
             background-color: #0056b3;
         }
 
-        p#message {
-            margin-top: 20px;
-            display: none;
-        }
-
         a {
-            display: block;
+            display: inline-block;
             margin-top: 10px;
             color: #007bff;
             text-decoration: none;
@@ -82,38 +77,55 @@
 
 <body>
     <div class="container">
-        <h1>Forgot Password</h1>
-        <form id="forgotPasswordForm">
-            <input type="email" id="email" placeholder="Email" required>
-            <button type="submit">Send Reset Token</button>
+        <h1>Edit Post</h1>
+        <form id="editPostForm">
+            <textarea id="content" placeholder="Edit your post content"></textarea>
+            <button type="submit">Update Post</button>
         </form>
-        <p id="message" style="display: none;">Check the server console for the reset token, then <a
-                href="reset-password.html">click here to reset your password</a>.</p>
         <a href="index.html">Back to Home</a>
     </div>
+
     <script>
-        document.getElementById('forgotPasswordForm').addEventListener('submit', async (e) => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const postId = urlParams.get('postId');
+
+        async function fetchPost() {
+            try {
+                const response = await fetch(`/api/posts/${postId}`);
+                const postData = await response.json();
+                document.getElementById('content').value = postData.content;
+            } catch (error) {
+                console.error('Error fetching post:', error);
+            }
+        }
+
+        document.getElementById('editPostForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const email = document.getElementById('email').value;
+            const content = document.getElementById('content').value;
+            const token = localStorage.getItem('token');
 
             try {
-                const response = await fetch('/api/forgot-password', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email }),
+                const response = await fetch(`/api/posts/${postId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ content })
                 });
                 const data = await response.json();
                 if (response.ok) {
-                    document.getElementById('message').style.display = 'block';
-                    alert(data.message);
+                    alert('Post updated successfully');
+                    window.location.href = `view-post.html?postId=${postId}`;
                 } else {
-                    alert(data.error);
+                    alert('Failed to update post');
                 }
             } catch (error) {
-                console.error('Error:', error);
-                alert('An error occurred while requesting a password reset');
+                console.error('Error updating post:', error);
             }
         });
+
+        fetchPost();
     </script>
 </body>
 

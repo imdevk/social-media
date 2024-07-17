@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsonwebtoken/8.5.1/jsonwebtoken.min.js"></script>
+
+    <title>All Posts</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            width: 80%;
+            max-width: 800px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .post {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .post p {
+            margin-bottom: 10px;
+        }
+
+        .post textarea {
+            width: calc(100% - 80px);
+            padding: 5px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            resize: vertical;
+        }
+
+        .post button {
+            padding: 5px 10px;
+            margin-left: 10px;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            background-color: #007bff;
+            color: #fff;
+            transition: background-color 0.3s ease;
+        }
+
+        .post button:hover {
+            background-color: #0056b3;
+        }
+
+        .post .comments {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .post .comments p {
+            margin-bottom: 5px;
+        }
+
+        .post a {
+            display: inline-block;
+            margin-top: 10px;
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        .post a:hover {
+            text-decoration: underline;
+        }
+
+        a.backLink {
+            display: block;
+            margin-top: 20px;
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        a.backLink:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>View Posts</h1>
+        <div id="postsContainer"></div>
+        <a href="index.html" class="backLink">Back to Home</a>
+    </div>
+
+    <script>
+        async function fetchPosts() {
+            try {
+                const response = await fetch('/api/posts');
+                const posts = await response.json();
+                const postsContainer = document.getElementById('postsContainer');
+                postsContainer.innerHTML = '';
+                posts.forEach(post => {
+                    const postElement = document.createElement('div');
+                    postElement.classList.add('post');
+
+                    postElement.innerHTML = `
+                        <p><strong>${post.author.username}:</strong> ${post.content}</p>
+                        <button onclick="likePost('${post._id}')">${post.likes.includes(getUserId()) ? 'Unlike' : 'Like'}</button>
+                        <span>${post.likes.length} likes</span>
+                        <div>
+                            <textarea placeholder="Add a comment" id="comment-${post._id}"></textarea>
+                            <button onclick="commentPost('${post._id}')">Comment</button>
+                        </div>
+                        <div id="comments-${post._id}">
+                            ${post.comments.map(comment => `<p><strong>${comment.user.username}:</strong> ${comment.text}</p>`).join('')}
+                        </div>
+                        <a href="view-post.html?postId=${post._id}">View Post</a>
+                    `;
+                    postsContainer.appendChild(postElement);
+                });
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        async function likePost(postId) {
+            const token = localStorage.getItem('token');
+            try {
+                const response = await fetch(`/api/posts/${postId}/like`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    fetchPosts();
+                } else {
+                    alert('Failed to like post');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+
+        async function commentPost(postId) {
+            const token = localStorage.getItem('token');
+            const commentText = document.getElementById(`comment-${postId}`).value;
+            try {
+                const response = await fetch(`/api/posts/${postId}/comment`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ text: commentText })
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    fetchPosts();
+                } else {
+                    alert(data.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        function getUserId() {
+            const token = localStorage.getItem('token');
+            if (!token) return null;
+            try {
+                const decodedToken = jwt.decode(token);
+                return decodedToken.userId;
+            } catch (error) {
+                console.error('Error decoding token:', error);
+                return null;
+            }
+        }
+        fetchPosts();
+    </script>
+</body>
+
+</html>
