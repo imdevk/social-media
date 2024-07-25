@@ -70,14 +70,14 @@ app.post('/api/forgot-password', async (req, res) => {
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
         }
-        const resetToken = crypto.randomBytes(20).toString('hex');
+        const resetToken = crypto.randomBytes(3).toString('hex');
         user.resetToken = resetToken;
-        user.resetTokenExpiration = Date.now() + 3600000; // 1 hour
+        user.resetTokenExpiration = Date.now() + 3600000; // 1 h
         await user.save();
 
         console.log(`Reset token for ${email}: ${resetToken}`);
 
-        res.json({ message: 'Password reset token generated. Check server console for the token.' });
+        res.json({ message: 'Password reset token generated.', resetToken });
     } catch (error) {
         res.status(400).json({ error: error.message });
     }
